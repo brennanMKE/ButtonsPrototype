@@ -1,0 +1,14 @@
+# Normalize line endings; keep LF in the repo and working tree
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.bat  text eol=crlf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.pdf  binary
+*.bin  binary
+*.elf  binary
