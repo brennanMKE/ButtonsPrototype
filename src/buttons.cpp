@@ -1,9 +1,10 @@
 // Step 2: debounced buttons driving colors.
 //
 // This is the same button logic as the TronIdentityDisc disc, minus ESP-NOW:
-//   - press a button: the strip changes to that button's color right away
+//   - press white, blue or green: the strip changes to that color right away
+//   - press black: the strip goes off
 //   - hold any button LONG_HOLD_MS: the strip goes off
-//   - press any button while off: back on in that color
+// Step 3 adds the costume's real gestures (double taps, timed holds).
 //
 // Every event is also printed, so it works with no LED strip attached.
 
@@ -14,7 +15,9 @@
 
 static const uint8_t kPins[BUTTON_COUNT] = BUTTON_PINS;
 static const char* kNames[BUTTON_COUNT] = BUTTON_NAMES;
-static const CRGB kColors[BUTTON_COUNT] = { CRGB::White, CRGB::Blue, CRGB::Red, CRGB::Green };
+static const CRGB kColors[BUTTON_COUNT] = {
+  CRGB::Black, CRGB(0xE6FFFF), CRGB(0x6FC3DF), CRGB(0x39FF14)  // black (off), white, blue, green
+};
 
 CRGB leds[NUM_LEDS];
 
@@ -37,6 +40,11 @@ static void showColor(int8_t color) {  // -1 = off
 }
 
 static void onPress(uint8_t i) {
+  if (i == 0) {
+    Serial.printf("%-5s pressed  -> lights off\n", kNames[i]);
+    showColor(-1);
+    return;
+  }
   Serial.printf("%-5s pressed  -> color %s\n", kNames[i], kNames[i]);
   showColor(i);
 }
@@ -94,7 +102,7 @@ void setup() {
   FastLED.setBrightness(LED_BRIGHTNESS);
   showColor(-1);
 
-  Serial.println("\nButtonsAndColors step 2: press a button for its color, hold 3 s for off");
+  Serial.println("\nButtonsAndColors step 2: press a color button for its color, black or hold 3 s for off");
 }
 
 void loop() {

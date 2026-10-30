@@ -2,14 +2,14 @@
 
 A breadboard practice project for wiring and reading push buttons on an ESP32-C3. It uses the same four buttons and pins as the [TronIdentityDisc](../TronIdentityDisc) disc, so once this works on a breadboard, the same layout goes onto the protoboard.
 
-| Button | GPIO | Color |
+| Button | GPIO | Job |
 |---|---|---|
-| 1 | 0 | White |
-| 2 | 1 | Blue |
-| 3 | 3 | Red |
-| 4 | 4 | Green |
+| 1 | 5 | Black: outer ring, off, wake |
+| 2 | 6 | White (double tap: yellow) |
+| 3 | 7 | Green (double tap: orange) |
+| 4 | 10 | Blue (double tap: red) |
 
-Hold any button for 3 seconds to turn the lights off. Press any button to turn them back on in that color.
+LED strip data is on GPIO 4, next to 3.3V, 5V and GND on the ESP32-C3 Super Mini.
 
 ## Button Refresher
 
@@ -74,11 +74,12 @@ Once debounced, a button gives three useful events:
 
 | GPIO | Why |
 |---|---|
-| 2, 8, 9 | Strapping pins: their level at power-up decides how the chip boots. A button held at the wrong moment can stop it starting. (9 is the BOOT button.) |
-| 10 | Used for the LED strip in this project |
+| 2, 8, 9 | Strapping pins: their level at power-up decides how the chip boots. 8 also drives the Super Mini's onboard LED, and 9 is the BOOT button. |
+| 4 | Used for the LED strip in this project |
 | 18, 19 | USB, the cable you're flashing over |
+| 21 | Serial TX: the bootloader drives it at power-up, so a pressed button would fight it |
 
-GPIO 0-5 are the only pins that can wake the C3 from deep sleep, which is why the buttons are on 0, 1, 3 and 4.
+Only GPIO 0-5 can wake the C3 from deep sleep. Black is on GPIO 5 for that reason: it will double as the wake button in the future low-power mode.
 
 ## Parts
 
@@ -95,12 +96,12 @@ GPIO 0-5 are the only pins that can wake the C3 from deep sleep, which is why th
  ┌─────────┐
  │     GND ├──────────────────── blue (–) rail ─────┬──────┬──────┬──────┐
  │         │                                        │      │      │      │
- │  GPIO 0 ├──────────────────── [white button] ────┘      │      │      │
- │  GPIO 1 ├──────────────────── [blue  button] ───────────┘      │      │
- │  GPIO 3 ├──────────────────── [red   button] ──────────────────┘      │
- │  GPIO 4 ├──────────────────── [green button] ─────────────────────────┘
+ │  GPIO 5 ├──────────────────── [black button] ────┘      │      │      │
+ │  GPIO 6 ├──────────────────── [white button] ───────────┘      │      │
+ │  GPIO 7 ├──────────────────── [green button] ──────────────────┘      │
+ │ GPIO 10 ├──────────────────── [blue  button] ─────────────────────────┘
  │         │
- │ GPIO 10 ├──[330 Ω]──── strip DIN     (step 2, optional)
+ │  GPIO 4 ├──[330 Ω]──── strip DIN     (step 2, optional)
  │      5V ├───────────── strip 5V
  │     GND ├───────────── strip GND
  └─────────┘
@@ -110,9 +111,32 @@ GPIO 0-5 are the only pins that can wake the C3 from deep sleep, which is why th
 2. Run a jumper from a **GND** pin on the board to the breadboard's blue (–) rail.
 3. Put each button across the center gap too. That keeps its legs in separate rows.
 4. For each button, connect one leg to its GPIO and the **diagonally opposite** leg to the blue (–) rail.
-5. Put the buttons in order (white, blue, red, green) so it matches the disc.
+5. Put the buttons in order (black, white, green, blue) so it matches the disc. On the Super Mini they're all on one side (5, 6, 7, 8, 9, 10, 20, 21); just skip over 8 and 9.
 
 Pin labels differ between boards (some print `0`, others `GPIO0` or `IO0`), so check your board's pinout.
+
+### Lining the buttons up (ESP32-C3 Super Mini)
+
+On the Super Mini the four buttons come off one side, in order, with one gap where GPIO 8 (onboard LED) and 9 (BOOT) are skipped. The other side has the power pins and LED data; GPIO 0 and 1 there are free for later.
+
+```
+              USB-C
+          ┌───┴───┴───┐
+   strip ─┤ 5V     5  ├──── [black]  ─┐
+  rails  ─┤ GND    6  ├──── [white]  ─┤
+         ─┤ 3V3    7  ├──── [blue ]  ─┤
+ LED DIN ─┤ 4      8  │  (onboard LED, leave free)
+          │ 3      9  │  (BOOT, leave free)
+          │ 2     10  ├──── [green]  ─┤
+          │ 1     20  │               │
+          │ 0     21  │               │
+          └───────────┘               │
+                                 GND rail
+```
+
+Each button: one leg to its GPIO, the diagonally opposite leg to the GND rail. Put the four buttons side by side in order, and the jumpers from 5/6/7 and from 10 are all short. This is the same layout to copy onto the protoboard, with room left over for additions such as an LED power switch.
+
+This pin order is the common Super Mini layout. Check it against your board's silkscreen before wiring.
 
 The strip on USB power: keep it short and dim. The code caps it at 400 mA and brightness 64.
 
@@ -130,11 +154,11 @@ At startup every pin should say `HIGH (released)`. If one says `LOW`, that butto
 Press and release each button. You should see something like:
 
 ```
-red   GPIO 3 -> LOW  (pressed)
-red   GPIO 3 -> HIGH (released)
-red   GPIO 3 -> LOW  (pressed)
+blue  GPIO 10 -> LOW  (pressed)
+blue  GPIO 10 -> HIGH (released)
+blue  GPIO 10 -> LOW  (pressed)
       ^ 3 changes in 20 ms: that's bounce
-red   GPIO 3 -> HIGH (released)
+blue  GPIO 10 -> HIGH (released)
 ```
 
 | Symptom | Likely cause |
@@ -156,8 +180,8 @@ pio device monitor
 ```
 
 ```
-red   pressed  -> color red
-red   released after 182 ms
+blue  pressed  -> color blue
+blue  released after 182 ms
 green pressed  -> color green
 green held 3 s -> lights off
 green released after 3410 ms
@@ -171,11 +195,51 @@ Things to try:
 - Change `LONG_HOLD_MS` to see what hold time feels right.
 - Press two buttons at once.
 
+## Step 3: Taps and Holds
+
+The experiment for the costume controls ([TronIdentityDisc docs/controls.md](../TronIdentityDisc/docs/controls.md)). Same wiring as step 2. The strip stands in for the disc: its first half is the inner C, and its second half is the outer ring.
+
+```bash
+pio run -e taps -t upload
+pio device monitor
+```
+
+| Button | Gesture | Costume meaning | What this demo does |
+|---|---|---|---|
+| White, blue, green | Tap | Own costume: primary color | That color |
+| | Double tap | Own costume: secondary (yellow, red, orange) | That color |
+| | Hold 1 s | Both costumes: primary | Two quick flashes, then the color |
+| | Tap, then hold 1 s | Both costumes: secondary | Two quick flashes, then the color |
+| Black | Tap | Outer ring on/off | Second half on/off |
+| | Double tap | Ring flicker (again: steady) | Second half flickers |
+| | Triple tap | Ring motion (again: steady) | A dot circles the second half |
+| | Hold 3 s | Own costume off | Off; tap black to come back |
+
+```
+blue  x1 -> own costume blue
+blue  x2 -> own costume red
+green x1 + hold -> BOTH costumes green
+black x2
+  ring on (flicker)
+black held 3 s -> lights off
+```
+
+Things to notice:
+
+- **A tap waits.** After you let go, it waits `TAP_GAP_MS` (350 ms) to see whether another tap is coming before it counts. That pause is the cost of telling single from double.
+- **The last tap a button understands fires on release**, without waiting: the 2nd tap on a color button, the 3rd on black.
+- **A hold fires while you're still holding**: 1 s on a color button, 3 s on black.
+- **A different button during the wait** counts the first sequence as taps and starts fresh.
+
+Tune `TAP_GAP_MS` and `SHORT_HOLD_MS` in `include/config.h`. Try 250 and 500 for the gap: shorter feels snappier, but double and triple taps get harder to hit. Whatever feels right here goes into the costume firmware.
+
+[src/taps.cpp](src/taps.cpp) has the state machine drawn at the top. It works in two layers: debounced press/release events (as in step 2), then a small state machine that turns them into gestures.
+
 ## Moving to the Protoboard
 
 The protoboard is the same circuit made permanent:
 
-- Keep the same order: white GPIO 0, blue GPIO 1, red GPIO 3, green GPIO 4.
+- Keep the same order: black GPIO 5, white GPIO 6, green GPIO 7, blue GPIO 10. LED data on GPIO 4.
 - Run one shared GND wire along the buttons, the same job as the breadboard rail.
 - Keep using diagonal legs.
 - Before soldering the board on, check each button with the multimeter: GPIO pad to GND should beep only while pressed.
@@ -184,7 +248,8 @@ The protoboard is the same circuit made permanent:
 ## Project Layout
 
 ```
-include/config.h      Pins, names, debounce and hold times, LED settings
+include/config.h      Pins, names, debounce, hold and tap-gap times, LED settings
 src/wiring_test.cpp   Step 1: raw pin changes and bounce
 src/buttons.cpp       Step 2: debounced press / release / hold with colors
+src/taps.cpp          Step 3: the costume gestures (taps, holds, outer ring)
 ```
