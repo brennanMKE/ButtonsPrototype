@@ -19,7 +19,7 @@
 #define LED_PIN        4
 #define NUM_LEDS       8
 #define LED_BRIGHTNESS 64
-#define LED_MAX_MA     400     // stay well inside what a USB port can supply
+#define LED_MAX_MA     800     // matches the disc; more than a USB 2.0 port's 500 mA
 
 // ---- Step 3 only ----
 // The strip's first half is the disc's inner C, its second half the outer ring.
