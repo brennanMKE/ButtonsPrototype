@@ -1,4 +1,4 @@
-# ButtonsAndColors
+# Buttons Prototype
 
 A breadboard practice project for wiring and reading push buttons on an ESP32-C3. It uses the same four buttons and pins as the [TronIdentityDisc](../TronIdentityDisc) disc, so once this works on a breadboard, the same layout goes onto the protoboard.
 
