@@ -72,7 +72,6 @@ static uint8_t  currentColor = BLUE;
 static uint8_t  lastColor = BLUE;   // what tapping black brings back after off
 static bool     ringOn = true;
 static uint8_t  ringMode = RING_SOLID;
-static uint32_t ringLitMs = 0;      // start of the ignition sweep
 static uint32_t flashMs = 0;        // start of the "both costumes" flashes
 static bool     flashing = false;
 
@@ -95,9 +94,6 @@ static void drawRing(uint32_t now) {
     fill_solid(ring, RING_LEDS, CRGB::Black);
     return;
   }
-  // Ignition: the ring lights around from its first LED.
-  uint32_t since = now - ringLitMs;
-  uint16_t lit = since >= RING_IGNITE_MS ? RING_LEDS : (uint32_t)RING_LEDS * since / RING_IGNITE_MS;
   uint8_t flicker = ringMode == RING_FLICKER ? ringFlickerLevel(now) : 255;
   // Motion: a bright head travels round once per RING_MOTION_MS with a
   // fading tail, over a dim base.
@@ -111,7 +107,7 @@ static void drawRing(uint32_t now) {
     } else if (ringMode == RING_FLICKER) {
       level = random8() < 6 ? flicker / 4 : flicker;
     }
-    CRGB c = i < lit ? ledColors[currentColor] : CRGB::Black;
+    CRGB c = ledColors[currentColor];
     c.nscale8_video(level);
     ring[i] = c;
   }
@@ -126,23 +122,18 @@ static void render() {
     FastLED.show();
     return;
   }
-  if (flashing) {
-    flashing = false;
-    ringLitMs = now;  // the ring sweeps back in after the flashes
-  }
+  flashing = false;
   fill_solid(leds, MAIN_LEDS, currentColor == OFF ? CRGB::Black : ledColors[currentColor]);
   drawRing(now);
   FastLED.show();
 }
 
 static void setColor(uint8_t color) {
-  if (currentColor == OFF && color != OFF) ringLitMs = millis();  // coming on: ignite the ring
   if (color != OFF) lastColor = color;
   currentColor = color;
 }
 
 static void setRing(bool on, uint8_t mode) {
-  if (on && !ringOn) ringLitMs = millis();
   ringOn = on;
   ringMode = mode;
   Serial.printf("  ring %s (%s)\n", on ? "on" : "off", kRingNames[mode]);
@@ -293,7 +284,6 @@ void setup() {
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, LED_MAX_MA);
   FastLED.setBrightness(LED_BRIGHTNESS);
-  ringLitMs = millis();
   render();
 
   Serial.printf("Starting %s, ring on\n", kColorNames[currentColor]);

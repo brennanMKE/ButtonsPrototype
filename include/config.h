@@ -24,7 +24,6 @@
 // ---- Step 3 only ----
 // The strip's first half is the disc's inner C, its second half the outer ring.
 #define FRAME_MS            20    // redraw rate for the ring effects (50 fps)
-#define RING_IGNITE_MS      400   // sweep around when the ring comes on
 #define RING_MOTION_MS      1000  // motion effect: one turn of the bright head
 #define RING_MOTION_FLOOR   50    // motion effect: base level behind the tail (0-255)
 #define FLASH_MS            80    // "both costumes": each of the two flashes, on and off
